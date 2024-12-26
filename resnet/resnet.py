@@ -159,7 +159,7 @@ def preprocess(image):
 def build_dataloaders():
     seed = 1
     # 设置好读取数据的目录
-    data_dir = './model_deploy/datasets'
+    data_dir = './datasets'
     train_dir = 'mam'
     valid_dir = 'val'
     '''
@@ -357,12 +357,12 @@ def load_model(model_path='model_deploy/resnet/checkpoint/best_model.pth'):
     model.load_state_dict(torch.load(model_path))
     return model
 if __name__ == "__main__":
-    quent_model()
+    # quent_model()
     dataloaders = build_dataloaders()
-    model       = build_model(num_classes=45)
+    # model       = build_model(num_classes=45)
     criterion   = build_criterion()
-    optimizer   = build_optimizer(model)
-    model       = train_model(dataloaders,model,criterion,optimizer,num_epochs=5)
-    save_model(model)
-    # model = load_model()
+    # optimizer   = build_optimizer(model)
+    # model       = train_model(dataloaders,model,criterion,optimizer,num_epochs=5)
+    # save_model(model)
+    model = load_model(model_path="model_deploy/resnet/checkpoint/quant_resnet50-calibrated.pth")
     eval_loss, eval_acc = eval_model(model,dataloaders,criterion)
