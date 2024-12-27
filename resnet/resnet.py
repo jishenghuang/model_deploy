@@ -12,6 +12,7 @@ from sklearn.model_selection import train_test_split
 from pytorch_quantization import quant_modules
 from torch import optim
 from tqdm import tqdm
+import copy
 # from train import evaluate, train_one_epoch, load_data
 class BasicBlock(nn.Module):
     """
@@ -250,12 +251,12 @@ def quent_model():
     # quant_desc_input = QuantDescriptor(calib_method='histogram')
     # quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
     # quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
-def build_model(num_classes = 1000):
-    model = resnet18(num_classes=45)
+def build_model(num_classes = 45):
+    # model = resnet18(num_classes=45)
     model = models.resnet50(weights=models.ResNet50_Weights.DEFAULT)
-    # num_ftrs = model.fc.in_features
-    # model.fc = nn.Linear(num_ftrs, num_classes)
-    print(model)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, num_classes)
+    # print(model)
     return model
 def build_criterion():
     return nn.CrossEntropyLoss()
@@ -308,7 +309,7 @@ def train_model(dataloaders,model,criterion,optimizer,num_epochs=25,device="cuda
             # 深拷贝模型
             if phase == 'val' and epoch_acc > best_acc:
                 best_acc = epoch_acc
-                best_model_wts = model.state_dict()
+                best_model_wts = copy.deepcopy(model.state_dict())
 
         print()
 
@@ -355,14 +356,15 @@ def load_model(model_path='model_deploy/resnet/checkpoint/best_model.pth'):
     model       = build_model(num_classes=45)
     # 加载保存的权重
     model.load_state_dict(torch.load(model_path))
+    # print(model)
     return model
 if __name__ == "__main__":
-    # quent_model()
+    quent_model()
     dataloaders = build_dataloaders()
     # model       = build_model(num_classes=45)
     criterion   = build_criterion()
     # optimizer   = build_optimizer(model)
     # model       = train_model(dataloaders,model,criterion,optimizer,num_epochs=5)
     # save_model(model)
-    model = load_model(model_path="model_deploy/resnet/checkpoint/quant_resnet50-calibrated.pth")
+    model = load_model(model_path="model_deploy/resnet/checkpoint/quant_resnet50-mse_calibrated.pth")
     eval_loss, eval_acc = eval_model(model,dataloaders,criterion)

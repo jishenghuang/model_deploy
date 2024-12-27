@@ -1,5 +1,6 @@
 
 import os
+import sys
 from pytorch_quantization import quant_modules
 from pytorch_quantization import nn as quant_nn
 import torch
@@ -9,6 +10,9 @@ from pytorch_quantization.tensor_quant import QuantDescriptor
 from torchvision import models
 from torchvision import transforms, models, datasets
 from tqdm import tqdm
+sys.path.append(os.getcwd())
+from model_deploy.resnet.resnet import build_model, load_model
+# from ...model_deploy
 
 def build_dataloader():
     data_transforms = {
@@ -50,10 +54,12 @@ def collect_stats(model, data_loader, num_batches):
             else:
                 module.disable()
 
-    for i, (image, _) in tqdm(enumerate(data_loader), total=num_batches):
-        model(image.cuda())
-        if i >= num_batches:
+    # for i, (image, _) in tqdm(enumerate(data_loader)):
+    for i, (image, _) in tqdm(enumerate(data_loader), total=len(data_loader)):
+        if i >= len(data_loader):
             break
+        model(image.cuda())
+        
 
     # Disable calibrators
     for name, module in model.named_modules():
@@ -80,14 +86,19 @@ if __name__ == "__main__":
     quant_desc_input = QuantDescriptor(calib_method='histogram')
     quant_nn.QuantConv2d.set_default_quant_desc_input(quant_desc_input)
     quant_nn.QuantLinear.set_default_quant_desc_input(quant_desc_input)
-
-    model = models.resnet50(pretrained=True)
+    # model = build_model()
+    model = load_model()
     model.cuda()
     dataloader = build_dataloader()
     # It is a bit slow since we collect histograms on CPU
     with torch.no_grad():
-        collect_stats(model, dataloader, num_batches=40)
+        collect_stats(model, dataloader, num_batches=None)
         compute_amax(model, method="percentile", percentile=99.99)
-    print(model)
-    torch.save(model.state_dict(), "model_deploy/resnet/checkpoint/quant_resnet50-calibrated.pth")
-
+        # print(model)
+        torch.save(model.state_dict(), "model_deploy/resnet/checkpoint/quant_resnet50-calibrated.pth")
+    with torch.no_grad():
+        for method in ["mse", "entropy"]:
+            print(F"{method} calibration")
+            compute_amax(model, method=method)
+            # print(model)
+            torch.save(model.state_dict(), F"model_deploy/resnet/checkpoint/quant_resnet50-{method}_calibrated.pth")
