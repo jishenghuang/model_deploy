@@ -364,7 +364,7 @@ if __name__ == "__main__":
     # model       = build_model(num_classes=45)
     criterion   = build_criterion()
     # optimizer   = build_optimizer(model)
-    # model       = train_model(dataloaders,model,criterion,optimizer,num_epochs=5)
+    model       = train_model(dataloaders,model,criterion,optimizer,num_epochs=5)
     # save_model(model)
     model = load_model(model_path="model_deploy/resnet/checkpoint/quant_resnet50-mse_calibrated.pth")
     eval_loss, eval_acc = eval_model(model,dataloaders,criterion)

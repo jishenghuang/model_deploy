@@ -36,7 +36,7 @@ def build_dataloader():
         ]),
     }
     data_path = "datasets"
-    batch_size = 32
+    batch_size = 16
     dir = os.path.join(data_path, 'mam')
 
     dataset = datasets.ImageFolder(dir, transform=data_transforms["val"])

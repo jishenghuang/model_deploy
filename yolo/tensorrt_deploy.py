@@ -51,15 +51,16 @@ def build_engine_onnx(model_path, trt_path, min_shape = (1, 3, 640, 640),opt_sha
         return runtime.deserialize_cuda_engine(engine_bytes)
 
 def inference(engine, input_data):
+    input_data = np.ascontiguousarray(input_data)
     context = engine.create_execution_context()
     # 初始化流和绑定
     stream = cudart.cudaStreamCreate()[1]
     input_name = engine.get_tensor_name(0)
     output_name = engine.get_tensor_name(1)
 
-    # 检查输入数据形状是否与 profile 匹配
-    input_shape = input_data.shape
-    context.set_input_shape(input_name, input_shape)   # 设置实际输入的形状
+    # # 检查输入数据形状是否与 profile 匹配
+    # input_shape = input_data.shape
+    # context.set_input_shape(input_name, input_shape)   # 设置实际输入的形状
     
     # 分配内存
     input_shape = engine.get_tensor_shape(input_name)
@@ -112,9 +113,9 @@ def pre_process(image_path, input_size=640):
     normalized_image = padded_image.astype(np.float32) / 255.0
 
     # 4. 转为 NCHW 格式 (1, 3, H, W)
-    input_tensor = np.transpose(normalized_image, (2, 0, 1))[np.newaxis, ...]
+    input_arry = np.transpose(normalized_image, (2, 0, 1))[np.newaxis, ...]
 
-    return input_tensor, scale, pad_x, pad_y
+    return input_arry, scale, pad_x, pad_y
 def post_process(output, scale, pad_x, pad_y, input_size=640, conf_threshold=0.5, iou_threshold=0.4):
     # 1. 解析模型输出 (YOLOv8 通常有一个输出)
     predictions = output  # (batch, num_boxes, 6)
@@ -156,15 +157,18 @@ def draw_boxes(boxes, scores, class_ids, image_path, class_names):
         label = f"{class_names[class_id]}: {score:.2f}"
         cv2.rectangle(image, (x_min, y_min), (x_max, y_max), (0, 255, 0), 2)
         cv2.putText(image, label, (x_min, y_min - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-    cv2.imwrite("data/result_bus.jpg", image)
+    cv2.imwrite("model_deploy/data/result_bus.jpg", image)
     cv2.imshow("Detection", image)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-if __name__== "__main__":
+def main():
     imgpath = "model_deploy/data/bus.jpg"
     input_tensor, scale, pad_x, pad_y = pre_process(imgpath)
-    engine = build_engine_onnx("models/yolov8s.onnx",trt_path="models/yolov8s.trt")
+    engine = build_engine_onnx("models/yolo11n.onnx",trt_path="models/yolo11n.trt")
     output = inference(engine, input_tensor)
     result = post_process(output, scale, pad_x, pad_y)
     draw_boxes(*result, image_path=imgpath, class_names=class_names)
+if __name__== "__main__":
+    main()
+    
 
